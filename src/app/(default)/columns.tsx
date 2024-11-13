@@ -1,85 +1,53 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Check, Minus } from "lucide-react";
-import { tagsColor } from "./constants";
+import { Minus } from "lucide-react";
 import type { ColumnSchema } from "./schema";
-import { isArrayOfDates, isArrayOfNumbers } from "@/lib/is-array";
-import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { format, isSameDay } from "date-fns";
+import { isArrayOfNumbers } from "@/lib/is-array";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 export const columns: ColumnDef<ColumnSchema>[] = [
   {
-    accessorKey: "name",
-    header: "Name",
-    enableHiding: false,
+    accessorKey: "filename",
+    header: "File Path",
+    cell: ({ row }) => {
+      const value = row.getValue("filename") as string;
+      const truncated = value.slice(-20);
+      return <div className="max-w-[200px] truncate">{`${truncated}`}</div>;
+    },
+    filterFn: (row, id, value) => {
+      const rowValue = row.getValue(id) as string;
+      if (typeof value === "string") return value === rowValue;
+      if (Array.isArray(value)) return value.includes(rowValue);
+      return false;
+    },
   },
   {
-    accessorKey: "url",
-    header: "URL",
+    accessorKey: "component_name",
+    header: "Component Name",
     cell: ({ row }) => {
-      const value = row.getValue("url");
+      const value = row.getValue("component_name");
       return <div className="max-w-[200px] truncate">{`${value}`}</div>;
     },
-  },
-  {
-    accessorKey: "regions",
-    header: "Regions",
-    cell: ({ row }) => {
-      const value = row.getValue("regions");
-      if (Array.isArray(value)) {
-        return <div className="text-muted-foreground">{value.join(", ")}</div>;
-      }
-      return <div className="text-muted-foreground">{`${value}`}</div>;
-    },
     filterFn: (row, id, value) => {
-      const array = row.getValue(id) as string[];
-      if (typeof value === "string") return array.includes(value);
-      // up to the user to define either `.some` or `.every`
-      if (Array.isArray(value)) return value.some((i) => array.includes(i));
+      const rowValue = row.getValue(id) as string;
+      if (typeof value === "string") return value === rowValue;
+      if (Array.isArray(value)) return value.includes(rowValue);
       return false;
     },
   },
+
   {
-    accessorKey: "tags",
-    header: "Tags",
+    accessorKey: "avgSelfTimes",
+    header: "Average Self Time",
     cell: ({ row }) => {
-      const value = row.getValue("tags") as string | string[];
-      if (Array.isArray(value)) {
-        return (
-          <div className="flex flex-wrap gap-1">
-            {value.map((v) => (
-              <Badge key={v} className={tagsColor[v].badge}>
-                {v}
-              </Badge>
-            ))}
-          </div>
-        );
-      }
-      return <Badge className={tagsColor[value].badge}>{value}</Badge>;
-    },
-    filterFn: (row, id, value) => {
-      const array = row.getValue(id) as string[];
-      if (typeof value === "string") return array.includes(value);
-      // up to the user to define either `.some` or `.every`
-      if (Array.isArray(value)) return value.some((i) => array.includes(i));
-      return false;
-    },
-  },
-  {
-    accessorKey: "p95",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="P95" />
-    ),
-    cell: ({ row }) => {
-      const value = row.getValue("p95");
+      const value = row.getValue("avgSelfTimes") as number;
       if (typeof value === "undefined") {
         return <Minus className="h-4 w-4 text-muted-foreground/50" />;
       }
       return (
         <div>
-          <span className="font-mono">{`${value}`}</span> ms
+          <span className="font-mono">{`${value.toFixed(2)}`}</span> ms
         </div>
       );
     },
@@ -98,65 +66,83 @@ export const columns: ColumnDef<ColumnSchema>[] = [
     },
   },
   {
-    accessorKey: "active",
-    header: "Active",
+    accessorKey: "avgTotalTimes",
+    header: "Average Total Time",
     cell: ({ row }) => {
-      const value = row.getValue("active");
-      if (value) return <Check className="h-4 w-4" />;
-      return <Minus className="h-4 w-4 text-muted-foreground/50" />;
-    },
-    filterFn: (row, id, value) => {
-      const rowValue = row.getValue(id);
-      if (typeof value === "string") return value === String(rowValue);
-      if (typeof value === "boolean") return value === rowValue;
-      if (Array.isArray(value)) return value.includes(rowValue);
-      return false;
-    },
-  },
-  {
-    accessorKey: "public",
-    header: "Public",
-    cell: ({ row }) => {
-      const value = row.getValue("public");
-      if (value) return <Check className="h-4 w-4" />;
-      return <Minus className="h-4 w-4 text-muted-foreground/50" />;
-    },
-    filterFn: (row, id, value) => {
-      const rowValue = row.getValue(id);
-      if (typeof value === "string") return value === String(rowValue);
-      if (typeof value === "boolean") return value === rowValue;
-      if (Array.isArray(value)) return value.includes(rowValue);
-      return false;
-    },
-  },
-  {
-    accessorKey: "date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
-    ),
-    cell: ({ row }) => {
-      const value = row.getValue("date");
+      const value = row.getValue("avgTotalTimes") as number;
+      if (typeof value === "undefined") {
+        return <Minus className="h-4 w-4 text-muted-foreground/50" />;
+      }
       return (
-        <div className="text-xs text-muted-foreground" suppressHydrationWarning>
-          {format(new Date(`${value}`), "LLL dd, y HH:mm")}
+        <div>
+          <span className="font-mono">{`${value.toFixed(2)}`}</span> ms
         </div>
       );
     },
     filterFn: (row, id, value) => {
-      const rowValue = row.getValue(id);
-      if (value instanceof Date && rowValue instanceof Date) {
-        return isSameDay(value, rowValue);
-      }
-      if (Array.isArray(value)) {
-        if (isArrayOfDates(value) && rowValue instanceof Date) {
-          const sorted = value.sort((a, b) => a.getTime() - b.getTime());
-          // TODO: check length
-          return (
-            sorted[0]?.getTime() <= rowValue.getTime() &&
-            rowValue.getTime() <= sorted[1]?.getTime()
-          );
+      const rowValue = row.getValue(id) as number;
+      if (typeof value === "number") return value === Number(rowValue);
+      if (Array.isArray(value) && isArrayOfNumbers(value)) {
+        if (value.length === 1) {
+          return value[0] === rowValue;
+        } else {
+          const sorted = value.sort((a, b) => a - b);
+          return sorted[0] <= rowValue && rowValue <= sorted[1];
         }
       }
+      return false;
+    },
+  },
+  {
+    accessorKey: "avgRenders",
+    header: "Average Renders",
+    cell: ({ row }) => {
+      const value = row.getValue("avgRenders") as number;
+      if (typeof value === "undefined") {
+        return <Minus className="h-4 w-4 text-muted-foreground/50" />;
+      }
+      return (
+        <div>
+          <span className="font-mono">{`✖︎${value.toFixed(2)}`}</span>
+        </div>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const rowValue = row.getValue(id) as number;
+      if (typeof value === "number") return value === Number(rowValue);
+      if (Array.isArray(value) && isArrayOfNumbers(value)) {
+        if (value.length === 1) {
+          return value[0] === rowValue;
+        } else {
+          const sorted = value.sort((a, b) => a - b);
+          return sorted[0] <= rowValue && rowValue <= sorted[1];
+        }
+      }
+      return false;
+    },
+  },
+  {
+    accessorKey: "url",
+    header: "Full Path",
+    cell: ({ row }) => {
+      const value = row.getValue("url") as string;
+      if (!value) return <div className="max-w-[200px] truncate">{value}</div>;
+      const truncated = value.slice(-20);
+      return (
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div className="max-w-[200px] truncate cursor-pointer">{truncated}</div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-[300px] break-all">
+            {value}
+          </HoverCardContent>
+        </HoverCard>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const rowValue = row.getValue(id) as string;
+      if (typeof value === "string") return rowValue.includes(value);
+      if (Array.isArray(value)) return value.some((v) => rowValue.includes(v));
       return false;
     },
   },
